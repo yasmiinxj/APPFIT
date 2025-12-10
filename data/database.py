@@ -1,23 +1,33 @@
 import sqlite3
 import os
 
-# Caminho correto para o banco
+# Caminho para o banco (Persistência)
+# Motivo da escolha: usar SQLite facilita a persistência local sem servidor.
 DB_PATH = os.path.join(os.path.dirname(__file__), "fitness.db")
 
 def get_conn():
-    """Retorna conexão ativa com o banco SQLite. Cria o banco se não existir."""
-    # Garante que a pasta existe
+    """Retorna conexão ativa com o banco SQLite.
+    - Persistência: garante acesso e criação do banco.
+    - Tratamento de Exceções: diretório é criado automaticamente evitando erro FileNotFound.
+    """
+    # Garante que a pasta existe (Previne exceção ao tentar salvar o banco)
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = sqlite3.connect(DB_PATH)  # Conexão estabelecida
+    conn.row_factory = sqlite3.Row  # Facilita acesso às colunas por nome
     return conn
 
 def init_db():
-    """Cria todas as tabelas necessárias, caso não existam."""
+    """Cria todas as tabelas necessárias.
+    - Estrutura de Dados: modelagem das tabelas e relações.
+    - Modularização: função isolada apenas para iniciar o banco.
+    - Tratamento de Exceções: try/finally garante fechamento da conexão.
+    """
     try:
-        conn = get_conn()
+        conn = get_conn()  # Persistência
         cursor = conn.cursor()
 
+        # Estrutura de Dados: tabela para fichas de treino
+        # Papel: armazena informações gerais da ficha
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS fichas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,6 +37,8 @@ def init_db():
             )
         """)
 
+        # Tabela de treinos
+        # Papel: organiza treinos vinculados a uma ficha (1:N)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS treinos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,6 +49,8 @@ def init_db():
             )
         """)
 
+        # Tabela de exercícios
+        # Papel: lista exercícios pertencentes a cada treino
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS exercicios (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,6 +62,7 @@ def init_db():
             )
         """)
 
+        # Tabela de séries de cada exercício (estrutura hierárquica)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS series (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,6 +74,7 @@ def init_db():
             )
         """)
 
+        # Tabela de registros de treino (histórico)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS registros_treino (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,7 +87,7 @@ def init_db():
             )
         """)
 
-        conn.commit()
+        conn.commit()  # Persistência: salva dados
     finally:
         if 'conn' in locals():
-            conn.close()
+            conn.close()  # Tratamento seguro da conexão (independente de erro)
